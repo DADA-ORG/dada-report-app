@@ -49,7 +49,7 @@ async function listRecords(tableId, filter = '', pageSize = 100) {
     `${BASE_URL}/bitable/v1/apps/${process.env.BITABLE_APP_TOKEN}/tables/${tableId}/records`,
     { headers: { Authorization: `Bearer ${token}` }, params }
   );
-  if (res.data.code !== 0) throw new Error(`List records error: ${res.data.msg}`);
+  if (res.data.code !== 0) throw new Error(`List records error [${res.data.code}]: ${res.data.msg}`);
   return res.data.data.items || [];
 }
 
@@ -61,7 +61,10 @@ async function createRecord(tableId, fields) {
     { fields },
     { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
   );
-  if (res.data.code !== 0) throw new Error(`Create record error: ${res.data.msg}`);
+  if (res.data.code !== 0) {
+    console.error('Lark create record failed:', JSON.stringify({ code: res.data.code, msg: res.data.msg, fields }));
+    throw new Error(`Create record error: ${res.data.msg}`);
+  }
   return res.data.data.record;
 }
 
