@@ -22,4 +22,8 @@ export const api = {
     const qs = new URLSearchParams(params).toString();
     return request('GET', `/reports?${qs}`);
   },
+  getToSubmit: (params) => {
+    const qs = new URLSearchParams(params).toString();
+    return request('GET', `/reports/to-submit?${qs}`);
+  },
 };
