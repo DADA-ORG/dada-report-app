@@ -1,32 +1,16 @@
-// Lark H5 JSAPI helpers
-// In Lark WebView: window.h5sdk and window.tt are injected automatically
-// Outside Lark (dev): falls back to mock
+// Lark OAuth redirect flow
+// When user opens app inside Lark, redirect to Lark auth → get code in URL → exchange for identity
 
 const APP_ID = import.meta.env.VITE_LARK_APP_ID || '';
 
-export function isInLark() {
-  return !!(window.h5sdk || window.tt);
+// Get auth code from URL params (after Lark redirects back)
+export function getCodeFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('code');
 }
 
-// Get Lark auth code — must be called to identify the user
-export function getAuthCode() {
-  return new Promise((resolve, reject) => {
-    if (!window.h5sdk && !window.tt) {
-      // Dev fallback: skip real auth
-      console.warn('Not in Lark — using dev mock user');
-      resolve('dev_mock_code');
-      return;
-    }
-    const ready = window.h5sdk
-      ? (cb) => window.h5sdk.ready(cb)
-      : (cb) => cb();
-
-    ready(() => {
-      window.tt.requestAuthCode({
-        appId: APP_ID,
-        success(res) { resolve(res.code); },
-        fail(err) { reject(new Error(err.errMsg || 'Auth failed')); },
-      });
-    });
-  });
+// Redirect to Lark OAuth — user is auto-approved if already logged in
+export function redirectToLarkAuth() {
+  const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
+  window.location.href = `https://open.larksuite.com/open-apis/authen/v1/index?app_id=${APP_ID}&redirect_uri=${redirectUri}&response_type=code`;
 }

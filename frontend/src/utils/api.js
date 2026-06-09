@@ -14,7 +14,7 @@ async function request(method, path, body) {
 
 export const api = {
   login: (code) => request('POST', '/auth/login', { code }),
-  getMyEmployeeRecord: (open_id) => request('GET', `/employees/me?open_id=${open_id}`),
+  getMyEmployeeRecord: (open_id) => request('GET', `/employees/me?open_id=${encodeURIComponent(open_id)}`),
   checkTodaySubmission: (open_id) => request('GET', `/reports/check-today?open_id=${open_id}`),
   submitReport: (data) => request('POST', '/reports', data),
   getReports: (params) => {

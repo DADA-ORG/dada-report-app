@@ -22,23 +22,28 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/employees/me?open_id=xxx
+// GET /api/employees/me?open_id=xxx OR ?name=xxx
 // Returns the employee record for the current user
 router.get('/me', async (req, res) => {
   try {
-    const { open_id } = req.query;
-    if (!open_id) return res.status(400).json({ error: 'Missing open_id' });
+    const { open_id, name } = req.query;
+    if (!open_id && !name) return res.status(400).json({ error: 'Missing open_id or name' });
 
     const records = await listRecords(process.env.TABLE_REMOTE_PROBATION);
     const match = records.find(r => {
-      const empId = r.fields['Employee']?.[0]?.id;
-      return empId === open_id;
+      if (open_id) {
+        return r.fields['Employee']?.[0]?.id === open_id;
+      }
+      // Name lookup — case-insensitive
+      const empName = r.fields['Employee']?.[0]?.name || '';
+      return empName.toLowerCase() === name.toLowerCase();
     });
 
     if (!match) return res.json({ found: false });
     res.json({
       found: true,
       record_id: match.record_id,
+      employee_open_id: match.fields['Employee']?.[0]?.id || '',
       employee_type: match.fields['Employee Type']?.[0]?.text || match.fields['Employee Type'] || '',
       manager_open_id: match.fields['Direct Manager']?.[0]?.id || '',
       manager_name: match.fields['Direct Manager']?.[0]?.name || '',

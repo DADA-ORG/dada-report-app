@@ -1,16 +1,15 @@
 import { useState, useEffect, createContext, useContext } from 'react'
 import SubmitPage from './pages/SubmitPage.jsx'
 import ManagerPage from './pages/ManagerPage.jsx'
-import { getAuthCode } from './utils/lark.js'
+import { getCodeFromUrl, redirectToLarkAuth } from './utils/lark.js'
 import { api } from './utils/api.js'
 
-// Global user context
 export const UserContext = createContext(null)
 export const useUser = () => useContext(UserContext)
 
 export default function App() {
-  const [user, setUser] = useState(null)       // { open_id, name, avatar_url }
-  const [employeeInfo, setEmployeeInfo] = useState(null) // from Remote/Probation table
+  const [user, setUser] = useState(null)
+  const [employeeInfo, setEmployeeInfo] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState('submit')
@@ -18,20 +17,24 @@ export default function App() {
   useEffect(() => {
     async function init() {
       try {
-        // 1. Get Lark auth code
-        const code = await getAuthCode()
+        const code = getCodeFromUrl()
 
-        // 2. Exchange for user identity
-        let userInfo
-        if (code === 'dev_mock_code') {
-          // Dev mode mock
-          userInfo = { open_id: 'dev_user_001', name: 'Dev User', avatar_url: '' }
-        } else {
-          userInfo = await api.login(code)
+        if (!code) {
+          // No code yet — redirect to Lark OAuth
+          redirectToLarkAuth()
+          return
         }
+
+        // Exchange code for user identity
+        const userInfo = await api.login(code)
         setUser(userInfo)
 
-        // 3. Check if this user is in Remote/Probation table
+        // Clean code from URL without reload
+        const url = new URL(window.location.href)
+        url.searchParams.delete('code')
+        window.history.replaceState({}, '', url.toString())
+
+        // Look up employee record
         const empRecord = await api.getMyEmployeeRecord(userInfo.open_id)
         setEmployeeInfo(empRecord)
       } catch (err) {
@@ -47,7 +50,7 @@ export default function App() {
     return (
       <div className="center-state">
         <div className="spinner" />
-        <span>Loading…</span>
+        <span>Signing in…</span>
       </div>
     )
   }
@@ -56,8 +59,12 @@ export default function App() {
     return (
       <div className="center-state">
         <span style={{ fontSize: 36 }}>⚠️</span>
-        <span style={{ color: '#e74c3c' }}>{error}</span>
-        <button className="btn-primary" style={{ width: 'auto', padding: '10px 24px' }} onClick={() => location.reload()}>
+        <span style={{ color: '#e74c3c', textAlign: 'center', padding: '0 24px' }}>{error}</span>
+        <button className="btn-primary" style={{ width: 'auto', padding: '10px 24px' }} onClick={() => {
+          const url = new URL(window.location.href)
+          url.searchParams.delete('code')
+          window.location.href = url.toString()
+        }}>
           Retry
         </button>
       </div>
@@ -70,7 +77,6 @@ export default function App() {
         {activeTab === 'submit' && <SubmitPage />}
         {activeTab === 'manager' && <ManagerPage />}
 
-        {/* Bottom Tab Bar */}
         <nav className="tab-bar">
           <button
             className={`tab-item ${activeTab === 'submit' ? 'active' : ''}`}
