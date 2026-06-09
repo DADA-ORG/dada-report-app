@@ -17,10 +17,7 @@ router.get('/', async (req, res) => {
       filters.push(`CurrentValue.[员工姓名].id = "${employee_open_id}"`);
     }
     if (date) {
-      // date format: YYYY-MM-DD
-      const ts = new Date(date).getTime();
-      const nextDay = ts + 86400000;
-      filters.push(`AND(CurrentValue.[日期] >= ${ts}, CurrentValue.[日期] < ${nextDay})`);
+      filters.push(`CurrentValue.[日期] = TODAY()`);
     }
     const filter = filters.length > 1
       ? `AND(${filters.join(',')})`
