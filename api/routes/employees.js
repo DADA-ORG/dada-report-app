@@ -54,4 +54,34 @@ router.get('/me', async (req, res) => {
   }
 });
 
+// GET /api/employees/role?open_id=xxx
+// Returns role: 'admin' | 'manager' | 'employee'
+router.get('/role', async (req, res) => {
+  try {
+    const { open_id } = req.query;
+    if (!open_id) return res.status(400).json({ error: 'Missing open_id' });
+
+    // Check Admin Team table
+    const adminRecords = await listRecords(process.env.TABLE_ADMIN_TEAM);
+    const isAdmin = adminRecords.some(r => {
+      const people = r.fields['People'] || [];
+      return people.some(p => p.id === open_id);
+    });
+    if (isAdmin) return res.json({ role: 'admin' });
+
+    // Check if this user is a Direct Manager of anyone in Remote/Probation
+    const empRecords = await listRecords(process.env.TABLE_REMOTE_PROBATION);
+    const isManager = empRecords.some(r => {
+      const mgr = r.fields['Direct Manager'] || [];
+      return mgr.some(m => m.id === open_id);
+    });
+    if (isManager) return res.json({ role: 'manager' });
+
+    return res.json({ role: 'employee' });
+  } catch (err) {
+    console.error('Role check error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

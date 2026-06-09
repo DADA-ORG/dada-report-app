@@ -10,6 +10,7 @@ export const useUser = () => useContext(UserContext)
 export default function App() {
   const [user, setUser] = useState(null)
   const [employeeInfo, setEmployeeInfo] = useState(null)
+  const [role, setRole] = useState('employee') // 'admin' | 'manager' | 'employee'
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState('submit')
@@ -34,9 +35,13 @@ export default function App() {
         url.searchParams.delete('code')
         window.history.replaceState({}, '', url.toString())
 
-        // Look up employee record
-        const empRecord = await api.getMyEmployeeRecord(userInfo.open_id)
+        // Look up employee record and role in parallel
+        const [empRecord, roleData] = await Promise.all([
+          api.getMyEmployeeRecord(userInfo.open_id),
+          api.getUserRole(userInfo.open_id),
+        ])
         setEmployeeInfo(empRecord)
+        setRole(roleData.role)
       } catch (err) {
         setError(err.message)
       } finally {
@@ -72,7 +77,7 @@ export default function App() {
   }
 
   return (
-    <UserContext.Provider value={{ user, employeeInfo }}>
+    <UserContext.Provider value={{ user, employeeInfo, role }}>
       <div>
         {activeTab === 'submit' && <SubmitPage />}
         {activeTab === 'manager' && <ManagerPage />}
@@ -85,13 +90,15 @@ export default function App() {
             <span className="tab-icon">📝</span>
             My Report
           </button>
-          <button
-            className={`tab-item ${activeTab === 'manager' ? 'active' : ''}`}
-            onClick={() => setActiveTab('manager')}
-          >
-            <span className="tab-icon">👥</span>
-            Team Reports
-          </button>
+          {(role === 'admin' || role === 'manager') && (
+            <button
+              className={`tab-item ${activeTab === 'manager' ? 'active' : ''}`}
+              onClick={() => setActiveTab('manager')}
+            >
+              <span className="tab-icon">👥</span>
+              Team Reports
+            </button>
+          )}
         </nav>
       </div>
     </UserContext.Provider>
