@@ -7,7 +7,7 @@ const FILTERS = [
   { label: 'All', value: 'all' },
   { label: 'Remote', value: 'Remote' },
   { label: 'Probation', value: 'Probation' },
-  { label: 'WFH', value: 'WFH' },
+  { label: 'WFH', value: 'WFH Request' },
 ]
 
 function formatDate(ts) {
@@ -24,7 +24,7 @@ function badgeClass(type) {
 }
 
 export default function ManagerPage() {
-  const { user } = useUser()
+  const { user, role } = useUser()
   const [reports, setReports] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('today')
@@ -34,25 +34,24 @@ export default function ManagerPage() {
     if (!user?.open_id) return
     setLoading(true)
 
-    const params = { manager_open_id: user.open_id }
+    // Admins see all reports; managers see only their team
+    const params = role === 'admin' ? {} : { manager_open_id: user.open_id }
     if (filter === 'today') {
       params.date = new Date().toISOString().split('T')[0]
-    } else if (['Remote', 'Probation', 'WFH'].includes(filter)) {
-      // Will filter client-side after fetch
     }
 
-    api.getReports(filter === 'today' ? params : { manager_open_id: user.open_id })
+    api.getReports(params)
       .then(data => setReports(data))
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [user, filter])
+  }, [user, role, filter])
 
   const filtered = reports.filter(r => {
     if (filter === 'today') {
       const today = new Date(); today.setHours(0,0,0,0)
       return r.date >= today.getTime()
     }
-    if (['Remote', 'Probation', 'WFH'].includes(filter)) {
+    if (['Remote', 'Probation', 'WFH Request'].includes(filter)) {
       return r.report_type === filter
     }
     return true
