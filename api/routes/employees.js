@@ -63,11 +63,12 @@ router.get('/role', async (req, res) => {
 
     // Check Admin Team table
     const adminRecords = await listRecords(process.env.TABLE_ADMIN_TEAM);
+    console.log(`Role check for ${open_id} — admin table IDs:`, adminRecords.map(r => (r.fields['People'] || []).map(p => p.id)));
     const isAdmin = adminRecords.some(r => {
       const people = r.fields['People'] || [];
       return people.some(p => p.id === open_id);
     });
-    if (isAdmin) return res.json({ role: 'admin' });
+    if (isAdmin) { console.log(`${open_id} => admin`); return res.json({ role: 'admin' }); }
 
     // Check if this user is a Direct Manager of anyone in Remote/Probation
     const empRecords = await listRecords(process.env.TABLE_REMOTE_PROBATION);
@@ -75,8 +76,9 @@ router.get('/role', async (req, res) => {
       const mgr = r.fields['Direct Manager'] || [];
       return mgr.some(m => m.id === open_id);
     });
-    if (isManager) return res.json({ role: 'manager' });
+    if (isManager) { console.log(`${open_id} => manager`); return res.json({ role: 'manager' }); }
 
+    console.log(`${open_id} => employee`);
     return res.json({ role: 'employee' });
   } catch (err) {
     console.error('Role check error:', err.message);

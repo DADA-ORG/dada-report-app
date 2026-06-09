@@ -26,7 +26,9 @@ router.get('/', async (req, res) => {
       ? `AND(${filters.join(',')})`
       : filters[0] || '';
 
+    console.log('Reports GET params:', { manager_open_id, date, employee_open_id }, 'filter:', filter);
     const records = await listRecords(process.env.TABLE_REPORT_STORAGE, filter, 200);
+    console.log('Records fetched:', records.length);
 
     const reports = records.map(r => ({
       record_id: r.record_id,
