@@ -16,9 +16,7 @@ router.get('/', async (req, res) => {
     if (employee_open_id) {
       filters.push(`CurrentValue.[员工姓名].id = "${employee_open_id}"`);
     }
-    if (date) {
-      filters.push(`CurrentValue.[日期] = TODAY()`);
-    }
+    // Date filtering is handled client-side to avoid timezone issues
     const filter = filters.length > 1
       ? `AND(${filters.join(',')})`
       : filters[0] || '';

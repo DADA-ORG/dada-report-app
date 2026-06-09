@@ -34,11 +34,8 @@ export default function ManagerPage() {
     if (!user?.open_id) return
     setLoading(true)
 
-    // Admins see all reports; managers see only their team
+    // Admins see all reports; managers see only their team (no date filter — done client-side)
     const params = role === 'admin' ? {} : { manager_open_id: user.open_id }
-    if (filter === 'today') {
-      params.date = new Date().toISOString().split('T')[0]
-    }
 
     api.getReports(params)
       .then(data => setReports(data))
@@ -48,8 +45,9 @@ export default function ManagerPage() {
 
   const filtered = reports.filter(r => {
     if (filter === 'today') {
-      const today = new Date(); today.setHours(0,0,0,0)
-      return r.date >= today.getTime()
+      const todayStr = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD in local timezone
+      const recordStr = new Date(r.date).toLocaleDateString('en-CA')
+      return recordStr === todayStr
     }
     if (['Remote', 'Probation', 'WFH Request'].includes(filter)) {
       return r.report_type === filter
