@@ -35,11 +35,11 @@ router.get('/', async (req, res) => {
       employee_open_id: r.fields['员工姓名']?.[0]?.id || '',
       report_type: r.fields['Report Type']?.[0]?.text || r.fields['Report Type'] || '',
       roles_focus: r.fields['Roles Focus Today'] || '',
-      cv_sent: r.fields['CV Sent'] || 0,
+      cv_sent: r.fields['CV Sent:'] || 0,
       calls_notes: r.fields['No of Calls & CDD Name'] || '',
-      interviews: r.fields['No of ITW Today'] || 0,
+      interviews: r.fields['No of itw today:'] || 0,
       sourcing_channel: r.fields['Channel of Sourcing & Results'] || '',
-      final_update: r.fields['Final Case Update'] || '',
+      final_update: r.fields['Final case update (if any):'] || '',
       submitted_on: r.fields['Submitted on'] || null,
     }));
 
@@ -81,11 +81,11 @@ router.post('/', async (req, res) => {
       'Report Type': report_type,
       'Roles Focus Today': roles_focus,
     };
-    if (cv_sent !== undefined && cv_sent !== '') fields['CV Sent'] = Number(cv_sent);
+    if (cv_sent !== undefined && cv_sent !== '') fields['CV Sent:'] = Number(cv_sent);
     if (calls_notes) fields['No of Calls & CDD Name'] = calls_notes;
-    if (interviews !== undefined && interviews !== '') fields['No of ITW Today'] = Number(interviews);
+    if (interviews !== undefined && interviews !== '') fields['No of itw today:'] = Number(interviews);
     if (sourcing_channel) fields['Channel of Sourcing & Results'] = sourcing_channel;
-    if (final_update) fields['Final Case Update'] = final_update;
+    if (final_update) fields['Final case update (if any):'] = final_update;
 
     const record = await createRecord(process.env.TABLE_REPORT_STORAGE, fields);
     res.json({ success: true, record_id: record.record_id });

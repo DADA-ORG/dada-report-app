@@ -130,7 +130,7 @@ export default function SubmitPage() {
                 <option value="">Select type…</option>
                 <option value="Remote">Remote</option>
                 <option value="Probation">Probation</option>
-                <option value="WFH">WFH</option>
+                <option value="WFH Request">WFH Request</option>
               </select>
             </div>
 
