@@ -43,7 +43,7 @@ export default function SubmitPage() {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!form.report_type || !form.roles_focus) return
+    if (!form.report_type || !form.roles_focus || form.cv_sent === '' || !form.calls_notes || form.interviews === '' || !form.sourcing_channel) return
     setSubmitting(true)
     setError(null)
     try {
@@ -65,6 +65,10 @@ export default function SubmitPage() {
   return (
     <div className="page">
       <div className="page-header">
+        <div className="page-header-brand">
+          <div className="brand-dot" />
+          <span className="brand-tagline">DADA · Search For Excellence</span>
+        </div>
         <h1>Daily Work Report</h1>
         <p>{today}</p>
         {user && (
@@ -150,7 +154,7 @@ export default function SubmitPage() {
 
             {/* CVs Sent */}
             <div className="field-group">
-              <label className="field-label">CV Sent</label>
+              <label className="field-label">CV Sent <span className="required">*</span></label>
               <input
                 type="number"
                 min="0"
@@ -163,7 +167,7 @@ export default function SubmitPage() {
 
             {/* Calls & CDD Notes */}
             <div className="field-group">
-              <label className="field-label">No. of Calls & CDD Notes</label>
+              <label className="field-label">No. of Calls & CDD Notes <span className="required">*</span></label>
               <textarea
                 className="field-input"
                 placeholder="Calls made and candidate development notes…"
@@ -174,7 +178,7 @@ export default function SubmitPage() {
 
             {/* Interviews */}
             <div className="field-group">
-              <label className="field-label">No. of Interviews Today</label>
+              <label className="field-label">No. of Interviews Today <span className="required">*</span></label>
               <input
                 type="number"
                 min="0"
@@ -187,7 +191,7 @@ export default function SubmitPage() {
 
             {/* Sourcing Channel */}
             <div className="field-group">
-              <label className="field-label">Channel of Sourcing</label>
+              <label className="field-label">Channel of Sourcing <span className="required">*</span></label>
               <input
                 type="text"
                 className="field-input"
@@ -219,7 +223,7 @@ export default function SubmitPage() {
             <button
               type="submit"
               className="btn-primary"
-              disabled={submitting || !form.report_type || !form.roles_focus}
+              disabled={submitting || !form.report_type || !form.roles_focus || form.cv_sent === '' || !form.calls_notes || form.interviews === '' || !form.sourcing_channel}
             >
               {submitting ? 'Submitting…' : 'Submit Report'}
             </button>
