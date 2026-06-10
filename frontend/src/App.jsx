@@ -18,6 +18,17 @@ export default function App() {
   useEffect(() => {
     async function init() {
       try {
+        // ── Fast path: use cached session (same browser tab session) ──
+        const cached = sessionStorage.getItem('dada_session')
+        if (cached) {
+          const { user: u, employeeInfo: emp, role: r } = JSON.parse(cached)
+          setUser(u)
+          setEmployeeInfo(emp)
+          setRole(r)
+          setLoading(false)
+          return
+        }
+
         const code = getCodeFromUrl()
 
         if (!code) {
@@ -28,7 +39,6 @@ export default function App() {
 
         // Exchange code for user identity
         const userInfo = await api.login(code)
-        setUser(userInfo)
 
         // Clean code from URL without reload
         const url = new URL(window.location.href)
@@ -40,9 +50,20 @@ export default function App() {
           api.getMyEmployeeRecord(userInfo.open_id),
           api.getUserRole(userInfo.open_id),
         ])
+
+        // Cache for the rest of this browser session
+        sessionStorage.setItem('dada_session', JSON.stringify({
+          user: userInfo,
+          employeeInfo: empRecord,
+          role: roleData.role,
+        }))
+
+        setUser(userInfo)
         setEmployeeInfo(empRecord)
         setRole(roleData.role)
       } catch (err) {
+        // Clear bad cache and retry via OAuth
+        sessionStorage.removeItem('dada_session')
         setError(err.message)
       } finally {
         setLoading(false)
