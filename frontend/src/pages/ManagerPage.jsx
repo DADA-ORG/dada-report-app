@@ -131,22 +131,15 @@ function ToSubmitView({ role }) {
   if (loading) return <div className="center-state" style={{ minHeight: 200 }}><div className="spinner" /></div>
   if (error) return <div className="empty" style={{ color: '#e53935' }}>{error}</div>
 
-  if (!data?.is_workday) {
-    return (
-      <div className="empty">
-        <div style={{ fontSize: 36, marginBottom: 8 }}>🌴</div>
-        Today is a non-working day. No submissions required.
-      </div>
-    )
-  }
-
   const employees = data.employees || []
 
   if (employees.length === 0) {
     return (
       <div className="empty">
-        <div style={{ fontSize: 36, marginBottom: 8 }}>✅</div>
-        All team members have submitted today!
+        <div style={{ fontSize: 36, marginBottom: 8 }}>{data?.is_workday ? '✅' : '🌴'}</div>
+        {data?.is_workday
+          ? 'All team members have submitted — great work!'
+          : 'Today is a non-working day. No outstanding submissions.'}
       </div>
     )
   }

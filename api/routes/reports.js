@@ -120,18 +120,26 @@ function isSGTWorkday(dateStr) {
 }
 
 // GET /api/reports/to-submit?manager_open_id=xxx (optional)
-// Returns employees who should have submitted today but haven't
+// Returns all missed submissions from CUTOFF to today (not just today)
 router.get('/to-submit', async (req, res) => {
   try {
     const { manager_open_id } = req.query;
+    const CUTOFF = '2026-06-09';
     const todayStr = toSGTDateStr(Date.now());
+    const sgtHour = new Date(Date.now() + SGT_OFFSET).getUTCHours();
+    const isPastDeadline = sgtHour >= 18;
 
-    // Only show on workdays
-    if (!isSGTWorkday(todayStr)) {
-      return res.json({ employees: [], is_workday: false });
+    // Build list of all working days from CUTOFF to today (inclusive)
+    const workingDays = [];
+    let cursor = new Date(CUTOFF + 'T00:00:00Z');
+    const todayEnd = new Date(todayStr + 'T00:00:00Z');
+    while (cursor <= todayEnd) {
+      const ds = cursor.toISOString().split('T')[0];
+      if (isSGTWorkday(ds)) workingDays.push(ds);
+      cursor = new Date(cursor.getTime() + 86400000);
     }
 
-    // 1. Remote & Probation employees (submit every Mon-Fri)
+    // 1. Remote & Probation employees (same set for every Mon-Fri)
     const empRecords = await listRecords(process.env.TABLE_REMOTE_PROBATION);
     const remoteProb = empRecords
       .map(r => ({
@@ -143,57 +151,73 @@ router.get('/to-submit', async (req, res) => {
       }))
       .filter(e => e.open_id);
 
-    // 2. WFH employees for today (from WFH Request table, from June 9 2026 onwards)
+    // 2. All WFH records from CUTOFF onwards
     const wfhRecords = await listRecords(process.env.TABLE_WFH_REQUEST, '', 500);
-    const CUTOFF = '2026-06-09';
-    const wfhToday = wfhRecords
-      .filter(r => {
-        const start = r.fields['Start time'];
-        const end = r.fields['End time'];
-        if (!start || !end) return false;
-        const startStr = toSGTDateStr(start);
-        const endStr = toSGTDateStr(end);
-        if (startStr < CUTOFF) return false;
-        return todayStr >= startStr && todayStr <= endStr;
-      })
-      .map(r => ({
-        open_id: r.fields['Current assignee']?.[0]?.id || '',
-        name: r.fields['Current assignee']?.[0]?.name || '',
-        employee_type: 'WFH Request',
-        manager_open_id: '',
-        manager_name: '',
-      }))
-      .filter(e => e.open_id);
 
-    // Merge, deduplicate by open_id (Remote/Probation takes priority for manager info)
-    const byId = new Map();
-    remoteProb.forEach(e => byId.set(e.open_id, e));
-    wfhToday.forEach(e => { if (!byId.has(e.open_id)) byId.set(e.open_id, e); });
-    let allExpected = Array.from(byId.values());
-
-    // Filter by manager if not admin
-    if (manager_open_id) {
-      allExpected = allExpected.filter(e => e.manager_open_id === manager_open_id);
-    }
-
-    // 3. Who has submitted today?
-    const allReports = await listRecords(process.env.TABLE_REPORT_STORAGE, '', 500);
-    const submittedToday = new Set(
+    // 3. All submissions from CUTOFF to today — key: "open_id|YYYY-MM-DD"
+    const allReports = await listRecords(process.env.TABLE_REPORT_STORAGE, '', 1000);
+    const submittedKeys = new Set(
       allReports
-        .filter(r => toSGTDateStr(r.fields['日期']) === todayStr)
-        .map(r => r.fields['员工姓名']?.[0]?.id)
+        .map(r => {
+          const oid = r.fields['员工姓名']?.[0]?.id;
+          const ds = r.fields['日期'] ? toSGTDateStr(r.fields['日期']) : null;
+          return oid && ds ? `${oid}|${ds}` : null;
+        })
         .filter(Boolean)
     );
 
-    // 4. Past end-of-business in SGT? (18:00 = 6PM SGT)
-    const sgtHour = new Date(Date.now() + SGT_OFFSET).getUTCHours();
-    const isPastDeadline = sgtHour >= 18;
+    // 4. For each working day, find who should have submitted but didn't
+    const missed = [];
+    for (const dayStr of workingDays) {
+      const isToday = dayStr === todayStr;
+      const overdue = dayStr < todayStr || (isToday && isPastDeadline);
 
-    const notSubmitted = allExpected
-      .filter(e => !submittedToday.has(e.open_id))
-      .map(e => ({ ...e, due_date: todayStr, overdue: isPastDeadline }));
+      // Build expected set for this day
+      const byId = new Map();
+      remoteProb.forEach(e => byId.set(e.open_id, e));
+      wfhRecords
+        .filter(r => {
+          const start = r.fields['Start time'];
+          const end = r.fields['End time'];
+          if (!start || !end) return false;
+          const startStr = toSGTDateStr(start);
+          const endStr = toSGTDateStr(end);
+          if (startStr < CUTOFF) return false;
+          return dayStr >= startStr && dayStr <= endStr;
+        })
+        .forEach(r => {
+          const open_id = r.fields['Current assignee']?.[0]?.id || '';
+          if (open_id && !byId.has(open_id)) {
+            byId.set(open_id, {
+              open_id,
+              name: r.fields['Current assignee']?.[0]?.name || '',
+              employee_type: 'WFH Request',
+              manager_open_id: '',
+              manager_name: '',
+            });
+          }
+        });
 
-    res.json({ employees: notSubmitted, is_workday: true });
+      let expected = Array.from(byId.values());
+      if (manager_open_id) {
+        expected = expected.filter(e => e.manager_open_id === manager_open_id);
+      }
+
+      for (const emp of expected) {
+        if (!submittedKeys.has(`${emp.open_id}|${dayStr}`)) {
+          missed.push({ ...emp, due_date: dayStr, overdue });
+        }
+      }
+    }
+
+    // Sort: overdue first, then by date asc (oldest missed at top)
+    missed.sort((a, b) => {
+      if (a.overdue !== b.overdue) return a.overdue ? -1 : 1;
+      return a.due_date < b.due_date ? -1 : 1;
+    });
+
+    const isWorkday = isSGTWorkday(todayStr);
+    res.json({ employees: missed, is_workday: isWorkday, today: todayStr });
   } catch (err) {
     console.error('To-submit error:', err.message);
     res.status(500).json({ error: err.message });
