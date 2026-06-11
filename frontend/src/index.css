@@ -148,6 +148,20 @@ select.field-input {
 .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 .btn-primary:active:not(:disabled) { opacity: 0.88; transform: scale(0.99); }
 
+.btn-secondary {
+  width: 100%;
+  background: #fff;
+  color: var(--blue);
+  border: 1.5px solid var(--blue);
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-secondary:active { background: #f0f7ff; }
+
 /* Submitted banner */
 .submitted-banner {
   background: #e6f9f0;

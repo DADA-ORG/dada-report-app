@@ -192,8 +192,8 @@ router.get('/to-submit', async (req, res) => {
               open_id,
               name: r.fields['Current assignee']?.[0]?.name || '',
               employee_type: 'WFH Request',
-              manager_open_id: '',
-              manager_name: '',
+              manager_open_id: r.fields['Direct Manager']?.[0]?.id || '',
+              manager_name: r.fields['Direct Manager']?.[0]?.name || '',
             });
           }
         });
