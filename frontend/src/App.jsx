@@ -95,7 +95,9 @@ export default function App() {
     async function init() {
       try {
         // ── Fast path: use cached session (same browser tab session) ──
-        const cached = sessionStorage.getItem('dada_session')
+        // v2: cache key bumped to force re-auth and pick up isDeveloper flag
+        const CACHE_KEY = 'dada_session_v2'
+        const cached = sessionStorage.getItem(CACHE_KEY)
         if (cached) {
           const { user: u, employeeInfo: emp, role: r, isDeveloper: dev } = JSON.parse(cached)
           setUser(u)
@@ -129,7 +131,7 @@ export default function App() {
 
         const dev = !!roleData.is_developer
 
-        sessionStorage.setItem('dada_session', JSON.stringify({
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify({
           user: userInfo,
           employeeInfo: empRecord,
           role: roleData.role,
@@ -142,7 +144,7 @@ export default function App() {
         setActiveRole(roleData.role)
         setIsDeveloper(dev)
       } catch (err) {
-        sessionStorage.removeItem('dada_session')
+        sessionStorage.removeItem(CACHE_KEY)
         setError(err.message)
       } finally {
         setLoading(false)
