@@ -68,7 +68,11 @@ router.get('/role', async (req, res) => {
       const people = r.fields['People'] || [];
       return people.some(p => p.id === open_id);
     });
-    if (isAdmin) { console.log(`${open_id} => admin`); return res.json({ role: 'admin' }); }
+    if (isAdmin) {
+      console.log(`${open_id} => admin`);
+      // Developer flag: any admin gets full role-switcher access
+      return res.json({ role: 'admin', is_developer: true });
+    }
 
     // Check if this user is a Direct Manager of anyone in Remote/Probation
     const empRecords = await listRecords(process.env.TABLE_REMOTE_PROBATION);

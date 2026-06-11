@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { listRecords, createRecord } = require('../utils/larkClient');
+const { notifyManager, lookupManagerOpenId } = require('../utils/notifications');
 
 // GET /api/reports?manager_open_id=xxx&date=YYYY-MM-DD
 // Returns reports filtered by manager and/or date
@@ -86,6 +87,11 @@ router.post('/', async (req, res) => {
 
     const record = await createRecord(process.env.TABLE_REPORT_STORAGE, fields);
     res.json({ success: true, record_id: record.record_id });
+
+    // Async: notify the employee's direct manager (non-blocking)
+    lookupManagerOpenId(open_id)
+      .then(managerOpenId => notifyManager(name, managerOpenId))
+      .catch(err => console.error('Manager notification error:', err.message));
   } catch (err) {
     console.error('Reports POST error:', err.message);
     res.status(500).json({ error: err.message });

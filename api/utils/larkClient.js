@@ -68,18 +68,28 @@ async function createRecord(tableId, fields) {
   return res.data.data.record;
 }
 
-// Send a Lark message to a user by open_id
+// Send a plain text Lark message to a user by open_id
 async function sendMessage(openId, text) {
   const token = await getTenantToken();
   await axios.post(
     `${BASE_URL}/im/v1/messages?receive_id_type=open_id`,
-    {
-      receive_id: openId,
-      msg_type: 'text',
-      content: JSON.stringify({ text }),
-    },
+    { receive_id: openId, msg_type: 'text', content: JSON.stringify({ text }) },
     { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
   );
 }
 
-module.exports = { getTenantToken, getUserInfo, listRecords, createRecord, sendMessage };
+// Send an interactive card to a user by open_id
+// card: { config, header: { title, template }, elements: [...] }
+async function sendCard(openId, card) {
+  const token = await getTenantToken();
+  const res = await axios.post(
+    `${BASE_URL}/im/v1/messages?receive_id_type=open_id`,
+    { receive_id: openId, msg_type: 'interactive', content: JSON.stringify(card) },
+    { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
+  );
+  if (res.data.code !== 0) {
+    console.error('sendCard failed:', openId, res.data.msg);
+  }
+}
+
+module.exports = { getTenantToken, getUserInfo, listRecords, createRecord, sendMessage, sendCard };
