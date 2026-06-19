@@ -119,29 +119,40 @@ export default function SubmitPage() {
       ) : (
         <form onSubmit={handleSubmit}>
           <div className="card">
-            {/* Report Type — auto-detected, read-only */}
+            {/* Report Type — auto-detected if found, manual fallback otherwise */}
             <div className="field-group">
-              <label className="field-label">Report Type</label>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '10px 12px',
-                background: '#f8f9fb',
-                border: '1.5px solid #dde3ec',
-                borderRadius: 10,
-                fontSize: 14,
-                color: form.report_type ? '#1a1a2e' : '#bbb',
-              }}>
-                {form.report_type ? (
-                  <>
-                    <span className={`badge badge-${form.report_type.toLowerCase().replace(' ', '-')}`}>
-                      {form.report_type}
-                    </span>
-                    <span style={{ fontSize: 12, color: '#aaa' }}>Auto-detected from your record</span>
-                  </>
-                ) : (
-                  <span>Detecting…</span>
-                )}
-              </div>
+              <label className="field-label">
+                Report Type <span className="required">*</span>
+              </label>
+              {employeeInfo?.found && form.report_type ? (
+                // Auto-detected — show as read-only badge
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '10px 12px',
+                  background: '#f8f9fb',
+                  border: '1.5px solid #dde3ec',
+                  borderRadius: 10,
+                  fontSize: 14,
+                }}>
+                  <span className={`badge badge-${form.report_type.toLowerCase().replace(' ', '-')}`}>
+                    {form.report_type}
+                  </span>
+                  <span style={{ fontSize: 12, color: '#aaa' }}>Auto-detected from your record</span>
+                </div>
+              ) : (
+                // Fallback dropdown (admin / not in employee tables)
+                <select
+                  className="field-input"
+                  value={form.report_type}
+                  onChange={set('report_type')}
+                  required
+                >
+                  <option value="">Select type…</option>
+                  <option value="Remote">Remote</option>
+                  <option value="Probation">Probation</option>
+                  <option value="WFH Request">WFH Request</option>
+                </select>
+              )}
             </div>
 
             {/* Roles Focus Today */}
