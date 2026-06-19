@@ -21,11 +21,10 @@ export default function SubmitPage() {
   const [checkingStatus, setCheckingStatus] = useState(true)
   const [error, setError] = useState(null)
 
-  // Auto-set report type based on employee record
+  // Auto-set report type from server-detected effective_type (WFH > Probation > Remote)
   useEffect(() => {
-    if (employeeInfo?.found && employeeInfo.employee_type) {
-      setForm(f => ({ ...f, report_type: employeeInfo.employee_type }))
-    }
+    const t = employeeInfo?.effective_type || employeeInfo?.employee_type
+    if (t) setForm(f => ({ ...f, report_type: t }))
   }, [employeeInfo])
 
   // Check if already submitted today
@@ -75,9 +74,9 @@ export default function SubmitPage() {
           <div className="user-chip">
             <span>👤</span>
             <span>{user.name}</span>
-            {employeeInfo?.found && (
-              <span className={`badge badge-${employeeInfo.employee_type?.toLowerCase()}`}>
-                {employeeInfo.employee_type}
+            {employeeInfo?.found && (employeeInfo.effective_type || employeeInfo.employee_type) && (
+              <span className={`badge badge-${(employeeInfo.effective_type || employeeInfo.employee_type).toLowerCase().replace(' ', '-')}`}>
+                {employeeInfo.effective_type || employeeInfo.employee_type}
               </span>
             )}
           </div>
@@ -111,7 +110,7 @@ export default function SubmitPage() {
             <button
               className="btn-primary"
               style={{ margin: '0 16px', width: 'calc(100% - 32px)' }}
-              onClick={() => { setSubmitted(false); setAlreadySubmitted(false); setForm(INITIAL_FORM); if (employeeInfo?.found) setForm(f => ({ ...f, report_type: employeeInfo.employee_type })); }}
+              onClick={() => { setSubmitted(false); setAlreadySubmitted(false); const t = employeeInfo?.effective_type || employeeInfo?.employee_type || ''; setForm({ ...INITIAL_FORM, report_type: t }); }}
             >
               Submit Another
             </button>
@@ -120,22 +119,29 @@ export default function SubmitPage() {
       ) : (
         <form onSubmit={handleSubmit}>
           <div className="card">
-            {/* Report Type */}
+            {/* Report Type — auto-detected, read-only */}
             <div className="field-group">
-              <label className="field-label">
-                Report Type <span className="required">*</span>
-              </label>
-              <select
-                className="field-input"
-                value={form.report_type}
-                onChange={set('report_type')}
-                required
-              >
-                <option value="">Select type…</option>
-                <option value="Remote">Remote</option>
-                <option value="Probation">Probation</option>
-                <option value="WFH Request">WFH Request</option>
-              </select>
+              <label className="field-label">Report Type</label>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '10px 12px',
+                background: '#f8f9fb',
+                border: '1.5px solid #dde3ec',
+                borderRadius: 10,
+                fontSize: 14,
+                color: form.report_type ? '#1a1a2e' : '#bbb',
+              }}>
+                {form.report_type ? (
+                  <>
+                    <span className={`badge badge-${form.report_type.toLowerCase().replace(' ', '-')}`}>
+                      {form.report_type}
+                    </span>
+                    <span style={{ fontSize: 12, color: '#aaa' }}>Auto-detected from your record</span>
+                  </>
+                ) : (
+                  <span>Detecting…</span>
+                )}
+              </div>
             </div>
 
             {/* Roles Focus Today */}

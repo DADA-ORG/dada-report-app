@@ -186,7 +186,7 @@ select.field-input {
 }
 .badge-remote { background: #e0f0ff; color: #005fa3; }
 .badge-probation { background: #fff3e0; color: #c65100; }
-.badge-wfh, .badge-wfh\ request { background: #ede7f6; color: #5b21b6; }
+.badge-wfh, .badge-wfh-request, .badge-wfh\ request { background: #ede7f6; color: #5b21b6; }
 
 /* Report list */
 .report-card {
