@@ -192,11 +192,11 @@ router.get('/to-submit', async (req, res) => {
           return dayStr >= startStr && dayStr <= endStr;
         })
         .forEach(r => {
-          const open_id = r.fields['Current assignee']?.[0]?.id || '';
+          const open_id = r.fields['Requester']?.[0]?.id || '';
           if (open_id && !byId.has(open_id)) {
             byId.set(open_id, {
               open_id,
-              name: r.fields['Current assignee']?.[0]?.name || '',
+              name: r.fields['Requester']?.[0]?.name || '',
               employee_type: 'WFH Request',
               manager_open_id: r.fields['Direct Manager']?.[0]?.id || '',
               manager_name: r.fields['Direct Manager']?.[0]?.name || '',

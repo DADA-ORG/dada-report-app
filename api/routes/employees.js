@@ -36,8 +36,13 @@ router.get('/me', async (req, res) => {
     }
     const todayStr = toSGTDateStr(Date.now());
 
-    // 1. Check Remote/Probation table — collect ALL matches (employee may have both rows)
-    const empRecords = await listRecords(process.env.TABLE_REMOTE_PROBATION);
+    // 1. Fetch both tables in parallel
+    const [empRecords, wfhRecords] = await Promise.all([
+      listRecords(process.env.TABLE_REMOTE_PROBATION),
+      listRecords(process.env.TABLE_WFH_REQUEST, '', 500),
+    ]);
+
+    // Check Remote/Probation table — collect ALL matches (employee may have both rows)
     const matches = empRecords.filter(r => {
       if (open_id) return r.fields['Employee']?.[0]?.id === open_id;
       const empName = r.fields['Employee']?.[0]?.name || '';
@@ -55,10 +60,9 @@ router.get('/me', async (req, res) => {
       : null;
 
     // 2. Check WFH Request table for an active record today
-    const wfhRecords = await listRecords(process.env.TABLE_WFH_REQUEST, '', 500);
     const activeWfh = wfhRecords.find(r => {
-      const assigneeId = r.fields['Current assignee']?.[0]?.id;
-      const assigneeName = r.fields['Current assignee']?.[0]?.name || '';
+      const assigneeId = r.fields['Requester']?.[0]?.id;
+      const assigneeName = r.fields['Requester']?.[0]?.name || '';
       const isMatch = open_id
         ? assigneeId === open_id
         : assigneeName.toLowerCase() === name.toLowerCase();

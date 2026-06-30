@@ -82,8 +82,8 @@ async function sendDailyReminders(isSecondReminder = false) {
       return todayStr >= startStr && todayStr <= endStr;
     })
     .map(r => ({
-      open_id: r.fields['Current assignee']?.[0]?.id || '',
-      name: r.fields['Current assignee']?.[0]?.name || '',
+      open_id: r.fields['Requester']?.[0]?.id || '',
+      name: r.fields['Requester']?.[0]?.name || '',
     }))
     .filter(e => e.open_id);
 
@@ -166,7 +166,7 @@ async function lookupManagerOpenId(employeeOpenId) {
     const todayStr = toSGTDateStr(Date.now());
     const wfhRecords = await listRecords(process.env.TABLE_WFH_REQUEST, '', 500);
     const wfhMatch = wfhRecords.find(r => {
-      const assignee = r.fields['Current assignee']?.[0]?.id;
+      const assignee = r.fields['Requester']?.[0]?.id;
       if (assignee !== employeeOpenId) return false;
       const start = r.fields['Start time'];
       const end = r.fields['End time'];
