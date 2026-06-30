@@ -39,18 +39,30 @@ async function getUserInfo(code) {
   return userRes.data.data; // { open_id, name, avatar_url, email, ... }
 }
 
-// List records from a Bitable table
-async function listRecords(tableId, filter = '', pageSize = 100) {
+// List records from a Bitable table (auto-paginates up to maxTotal records)
+// Lark Bitable max page_size is 500; pass maxTotal to cap total records fetched
+async function listRecords(tableId, filter = '', maxTotal = 100) {
   const token = await getTenantToken();
+  const pageSize = Math.min(maxTotal, 500);
   const params = { page_size: pageSize };
   if (filter) params.filter = filter;
 
-  const res = await axios.get(
-    `${BASE_URL}/bitable/v1/apps/${process.env.BITABLE_APP_TOKEN}/tables/${tableId}/records`,
-    { headers: { Authorization: `Bearer ${token}` }, params }
-  );
-  if (res.data.code !== 0) throw new Error(`List records error [${res.data.code}]: ${res.data.msg}`);
-  return res.data.data.items || [];
+  const allItems = [];
+  let pageToken = null;
+
+  do {
+    if (pageToken) params.page_token = pageToken;
+    const res = await axios.get(
+      `${BASE_URL}/bitable/v1/apps/${process.env.BITABLE_APP_TOKEN}/tables/${tableId}/records`,
+      { headers: { Authorization: `Bearer ${token}` }, params }
+    );
+    if (res.data.code !== 0) throw new Error(`List records error [${res.data.code}]: ${res.data.msg}`);
+    const data = res.data.data;
+    allItems.push(...(data.items || []));
+    pageToken = data.has_more ? data.page_token : null;
+  } while (pageToken && allItems.length < maxTotal);
+
+  return allItems;
 }
 
 // Create a record in a Bitable table

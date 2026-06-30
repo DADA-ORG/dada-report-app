@@ -70,11 +70,12 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const SGT_OFFSET = 8 * 60 * 60 * 1000;
+    const todayStr = new Date(Date.now() + SGT_OFFSET).toISOString().split('T')[0];
+    const todayMidnight = new Date(todayStr + 'T00:00:00+08:00').getTime();
 
     const fields = {
-      '日期': today.getTime(),
+      '日期': todayMidnight,
       '员工姓名': [{ id: open_id }],
       'Report Type': report_type,
       'Roles Focus Today': roles_focus,
@@ -237,11 +238,12 @@ router.get('/check-today', async (req, res) => {
     const { open_id } = req.query;
     if (!open_id) return res.status(400).json({ error: 'Missing open_id' });
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = today.getTime() + 86400000;
+    const SGT_OFFSET = 8 * 60 * 60 * 1000;
+    const todayStr = new Date(Date.now() + SGT_OFFSET).toISOString().split('T')[0];
+    const todayMidnight = new Date(todayStr + 'T00:00:00+08:00').getTime();
+    const tomorrow = todayMidnight + 86400000;
 
-    const filter = `AND(CurrentValue.[员工姓名].id = "${open_id}", CurrentValue.[日期] >= ${today.getTime()}, CurrentValue.[日期] < ${tomorrow})`;
+    const filter = `AND(CurrentValue.[员工姓名].id = "${open_id}", CurrentValue.[日期] >= ${todayMidnight}, CurrentValue.[日期] < ${tomorrow})`;
     const records = await listRecords(process.env.TABLE_REPORT_STORAGE, filter, 1);
     res.json({ submitted: records.length > 0 });
   } catch (err) {

@@ -214,7 +214,7 @@ export default function App() {
           )}
         </nav>
 
-        {/* Developer role switcher — only visible to Gracie */}
+        {/* Developer role switcher — visible to all admins */}
         {isDeveloper && (
           <DevRoleSwitcher activeRole={activeRole} onChange={handleDevRoleChange} />
         )}
