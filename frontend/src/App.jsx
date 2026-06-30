@@ -94,19 +94,24 @@ export default function App() {
   useEffect(() => {
     async function init() {
       try {
-        // ── Fast path: use cached session (same browser tab session) ──
-        // v2: cache key bumped to force re-auth and pick up isDeveloper flag
-        const CACHE_KEY = 'dada_session_v2'
-        const cached = sessionStorage.getItem(CACHE_KEY)
+        // ── Fast path: use cached session (persists up to 7 days via localStorage) ──
+        // v3: cache key bumped to force re-auth on upgrade
+        const CACHE_KEY = 'dada_session_v3'
+        const CACHE_TTL = 7 * 24 * 60 * 60 * 1000 // 7 days
+        const cached = localStorage.getItem(CACHE_KEY)
         if (cached) {
-          const { user: u, employeeInfo: emp, role: r, isDeveloper: dev } = JSON.parse(cached)
-          setUser(u)
-          setEmployeeInfo(emp)
-          setRole(r)
-          setActiveRole(r)
-          setIsDeveloper(!!dev)
-          setLoading(false)
-          return
+          const parsed = JSON.parse(cached)
+          if (Date.now() - (parsed.cachedAt || 0) < CACHE_TTL) {
+            const { user: u, employeeInfo: emp, role: r, isDeveloper: dev } = parsed
+            setUser(u)
+            setEmployeeInfo(emp)
+            setRole(r)
+            setActiveRole(r)
+            setIsDeveloper(!!dev)
+            setLoading(false)
+            return
+          }
+          localStorage.removeItem(CACHE_KEY) // expired, re-auth
         }
 
         const code = getCodeFromUrl()
@@ -131,11 +136,12 @@ export default function App() {
 
         const dev = !!roleData.is_developer
 
-        sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
           user: userInfo,
           employeeInfo: empRecord,
           role: roleData.role,
           isDeveloper: dev,
+          cachedAt: Date.now(),
         }))
 
         setUser(userInfo)
@@ -144,7 +150,7 @@ export default function App() {
         setActiveRole(roleData.role)
         setIsDeveloper(dev)
       } catch (err) {
-        sessionStorage.removeItem(CACHE_KEY)
+        localStorage.removeItem(CACHE_KEY)
         setError(err.message)
       } finally {
         setLoading(false)
