@@ -94,13 +94,18 @@ async function sendMessage(openId, text) {
 // card: { config, header: { title, template }, elements: [...] }
 async function sendCard(openId, card) {
   const token = await getTenantToken();
-  const res = await axios.post(
-    `${BASE_URL}/im/v1/messages?receive_id_type=open_id`,
-    { receive_id: openId, msg_type: 'interactive', content: JSON.stringify(card) },
-    { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
-  );
-  if (res.data.code !== 0) {
-    console.error('sendCard failed:', openId, res.data.msg);
+  try {
+    const res = await axios.post(
+      `${BASE_URL}/im/v1/messages?receive_id_type=open_id`,
+      { receive_id: openId, msg_type: 'interactive', content: JSON.stringify(card) },
+      { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
+    );
+    if (res.data.code !== 0) {
+      console.error('sendCard failed:', openId, res.data.code, res.data.msg);
+    }
+  } catch (err) {
+    console.error('sendCard HTTP error:', openId, JSON.stringify(err.response?.data) || err.message);
+    throw err;
   }
 }
 
