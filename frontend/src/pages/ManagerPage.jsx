@@ -312,14 +312,6 @@ export default function ManagerPage() {
         </div>
         <h1>Team Reports</h1>
         <p>{today}</p>
-        <a
-          href="https://dadaconsultants.sg.larksuite.com/base/X50rbYTrbaF7bNswGMalxuwOglB?table=tblkeUm5tSXaECuD&view=vewQ99yLOI"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ fontSize: 12, color: '#00B4CC', textDecoration: 'underline', display: 'inline-block', marginTop: 4 }}
-        >
-          📊 View Data Source
-        </a>
         {user && (
           <div className="user-chip">
             <span>👤</span>
@@ -327,6 +319,14 @@ export default function ManagerPage() {
             {role === 'admin' && (
               <span style={{ fontSize: 10, background: 'rgba(0,180,204,0.3)', borderRadius: 10, padding: '1px 6px' }}>Admin</span>
             )}
+            <a
+              href="https://dadaconsultants.sg.larksuite.com/base/X50rbYTrbaF7bNswGMalxuwOglB?table=tblkeUm5tSXaECuD&view=vewQ99yLOI"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ fontSize: 11, color: '#fff', textDecoration: 'underline', marginLeft: 8 }}
+            >
+              📊 Data Source
+            </a>
           </div>
         )}
       </div>
