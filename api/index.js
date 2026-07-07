@@ -51,4 +51,7 @@ cron.schedule('0 9 * * 1-5', () => {
 }, { timezone: 'UTC' });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`DADA Report API running on port ${PORT}`));
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`DADA Report API running on port ${PORT}`));
+}
+module.exports = app;
