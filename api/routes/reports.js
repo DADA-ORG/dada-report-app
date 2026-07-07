@@ -131,7 +131,7 @@ function isSGTWorkday(dateStr) {
 router.get('/to-submit', async (req, res) => {
   try {
     const { manager_open_id } = req.query;
-    const CUTOFF = '2026-06-09';
+    const CUTOFF = '2026-07-06';
     const todayStr = toSGTDateStr(Date.now());
     const sgtHour = new Date(Date.now() + SGT_OFFSET).getUTCHours();
     const isPastDeadline = sgtHour >= 18;
