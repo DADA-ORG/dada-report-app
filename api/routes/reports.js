@@ -9,24 +9,30 @@ router.get('/', async (req, res) => {
   try {
     const { manager_open_id, date, employee_open_id } = req.query;
 
-    // Build Lark Bitable filter formula
-    const filters = [];
-    if (manager_open_id) {
-      filters.push(`CurrentValue.[Direct Manager].id = "${manager_open_id}"`);
-    }
-    if (employee_open_id) {
-      filters.push(`CurrentValue.[员工姓名].id = "${employee_open_id}"`);
-    }
-    // Date filtering is handled client-side to avoid timezone issues
-    const filter = filters.length > 1
-      ? `AND(${filters.join(',')})`
-      : filters[0] || '';
+    // Only filter in Bitable on fields that support it. manager_open_id is
+    // NOT passed into the filter formula — see below for why.
+    const filter = employee_open_id
+      ? `CurrentValue.[员工姓名].id = "${employee_open_id}"`
+      : '';
 
     console.log('Reports GET params:', { manager_open_id, date, employee_open_id }, 'filter:', filter);
-    const records = await listRecords(process.env.TABLE_REPORT_STORAGE, filter, 200);
+    const records = await listRecords(process.env.TABLE_REPORT_STORAGE, filter, 1000);
     console.log('Records fetched:', records.length);
 
-    const reports = records.map(r => ({
+    // Manager filtering happens here in app code, after fetching, rather
+    // than via a Bitable filter formula. "Direct Manager" is Lark Base's
+    // built-in auto-computed field (resolves the manager from the company
+    // org chart off the 员工姓名 field) — reading it directly from a fetched
+    // record works fine (this is how the notification path already reads
+    // it from Remote/Probation successfully), but Bitable's filter formula
+    // doesn't support querying `.id` on this field type, so passing it into
+    // `filter` silently matches nothing. Read-then-filter-in-JS sidesteps
+    // that entirely.
+    const filteredRecords = manager_open_id
+      ? records.filter(r => r.fields['Direct Manager']?.[0]?.id === manager_open_id)
+      : records;
+
+    const reports = filteredRecords.map(r => ({
       record_id: r.record_id,
       date: r.fields['日期'] || null,
       employee_name: r.fields['员工姓名']?.[0]?.name || '',
