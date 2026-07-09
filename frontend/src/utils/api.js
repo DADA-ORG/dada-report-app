@@ -16,7 +16,6 @@ export const api = {
   login: (code) => request('POST', '/auth/login', { code }),
   getMyEmployeeRecord: (open_id) => request('GET', `/employees/me?open_id=${encodeURIComponent(open_id)}`),
   getUserRole: (open_id) => request('GET', `/employees/role?open_id=${encodeURIComponent(open_id)}`),
-  checkTodaySubmission: (open_id) => request('GET', `/reports/check-today?open_id=${open_id}`),
   submitReport: (data) => request('POST', '/reports', data),
   getReports: (params) => {
     const qs = new URLSearchParams(params).toString();

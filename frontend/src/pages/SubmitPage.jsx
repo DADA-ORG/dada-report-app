@@ -2,7 +2,12 @@ import { useState, useEffect } from 'react'
 import { useUser } from '../App.jsx'
 import { api } from '../utils/api.js'
 
+function todayStr() {
+  return new Date().toLocaleDateString('en-CA')
+}
+
 const INITIAL_FORM = {
+  report_date: todayStr(),
   report_type: '',
   roles_focus: '',
   cv_sent: '',
@@ -17,8 +22,6 @@ export default function SubmitPage() {
   const [form, setForm] = useState(INITIAL_FORM)
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
-  const [alreadySubmitted, setAlreadySubmitted] = useState(false)
-  const [checkingStatus, setCheckingStatus] = useState(true)
   const [error, setError] = useState(null)
 
   // Auto-set report type from server-detected effective_type (WFH > Probation > Remote)
@@ -27,22 +30,13 @@ export default function SubmitPage() {
     if (t) setForm(f => ({ ...f, report_type: t }))
   }, [employeeInfo])
 
-  // Check if already submitted today
-  useEffect(() => {
-    if (!user?.open_id) return
-    api.checkTodaySubmission(user.open_id)
-      .then(res => setAlreadySubmitted(res.submitted))
-      .catch(() => {})
-      .finally(() => setCheckingStatus(false))
-  }, [user])
-
   function set(field) {
     return (e) => setForm(f => ({ ...f, [field]: e.target.value }))
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!form.report_type || !form.roles_focus || form.cv_sent === '' || !form.calls_notes || form.interviews === '' || !form.sourcing_channel) return
+    if (!form.report_date || !form.report_type || !form.roles_focus || form.cv_sent === '' || !form.calls_notes || form.interviews === '' || !form.sourcing_channel) return
     setSubmitting(true)
     setError(null)
     try {
@@ -83,42 +77,40 @@ export default function SubmitPage() {
         )}
       </div>
 
-      {checkingStatus ? (
-        <div className="center-state" style={{ minHeight: 200 }}>
-          <div className="spinner" />
-        </div>
-      ) : submitted || alreadySubmitted ? (
+      {submitted ? (
         <div>
           <div className="submitted-banner">
             <span style={{ fontSize: 24 }}>✅</span>
             <div>
               <div style={{ fontWeight: 700 }}>Report submitted!</div>
-              <div style={{ fontSize: 12, marginTop: 2 }}>
-                {submitted ? 'Your report has been saved.' : 'You already submitted today.'}
-              </div>
+              <div style={{ fontSize: 12, marginTop: 2 }}>Your report has been saved.</div>
             </div>
           </div>
-          {alreadySubmitted && !submitted && (
-            <div className="card">
-              <p style={{ fontSize: 14, color: '#555', textAlign: 'center' }}>
-                You have already submitted your report for today.<br />
-                Come back tomorrow! 👋
-              </p>
-            </div>
-          )}
-          {submitted && (
-            <button
-              className="btn-primary"
-              style={{ margin: '0 16px', width: 'calc(100% - 32px)' }}
-              onClick={() => { setSubmitted(false); setAlreadySubmitted(false); const t = employeeInfo?.effective_type || employeeInfo?.employee_type || ''; setForm({ ...INITIAL_FORM, report_type: t }); }}
-            >
-              Submit Another
-            </button>
-          )}
+          <button
+            className="btn-primary"
+            style={{ margin: '0 16px', width: 'calc(100% - 32px)' }}
+            onClick={() => { setSubmitted(false); const t = employeeInfo?.effective_type || employeeInfo?.employee_type || ''; setForm({ ...INITIAL_FORM, report_type: t }) }}
+          >
+            Submit Another
+          </button>
         </div>
       ) : (
         <form onSubmit={handleSubmit}>
           <div className="card">
+            {/* Report Date — which day this report covers */}
+            <div className="field-group">
+              <label className="field-label">
+                Report Date <span className="required">*</span>
+              </label>
+              <input
+                type="date"
+                className="field-input"
+                value={form.report_date}
+                onChange={set('report_date')}
+                required
+              />
+            </div>
+
             {/* Report Type — auto-detected if found, manual fallback otherwise */}
             <div className="field-group">
               <label className="field-label">
@@ -240,7 +232,7 @@ export default function SubmitPage() {
             <button
               type="submit"
               className="btn-primary"
-              disabled={submitting || !form.report_type || !form.roles_focus || form.cv_sent === '' || !form.calls_notes || form.interviews === '' || !form.sourcing_channel}
+              disabled={submitting || !form.report_date || !form.report_type || !form.roles_focus || form.cv_sent === '' || !form.calls_notes || form.interviews === '' || !form.sourcing_channel}
             >
               {submitting ? 'Submitting…' : 'Submit Report'}
             </button>

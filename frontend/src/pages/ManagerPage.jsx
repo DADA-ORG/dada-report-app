@@ -35,7 +35,12 @@ function ReportCard({ r, expanded, onToggle }) {
       <div className="report-card-header">
         <div>
           <div className="report-employee">{r.employee_name}</div>
-          <div className="report-date">{formatDate(r.date)}</div>
+          <div className="report-date">
+            {formatDate(r.report_date || r.date)}
+            {r.report_date && r.date && new Date(r.report_date).toLocaleDateString('en-CA') !== new Date(r.date).toLocaleDateString('en-CA') && (
+              <span style={{ color: '#f59e0b', fontWeight: 600 }}> · catch-up (submitted {formatDate(r.date)})</span>
+            )}
+          </div>
         </div>
         <span className={badgeStyle(r.report_type)}>{r.report_type}</span>
       </div>

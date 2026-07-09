@@ -45,6 +45,7 @@ router.get('/', async (req, res) => {
       sourcing_channel: r.fields['Channel of Sourcing & Results'] || '',
       final_update: r.fields['Final case update (if any):'] || '',
       submitted_on: r.fields['Submitted on'] || null,
+      report_date: r.fields['Report Date'] || null,
     }));
 
     // Sort by date desc
@@ -70,18 +71,23 @@ router.post('/', async (req, res) => {
       interviews,
       sourcing_channel,
       final_update,
+      report_date,
     } = req.body;
 
-    if (!open_id || !report_type || !roles_focus) {
+    if (!open_id || !report_type || !roles_focus || !report_date) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
     const SGT_OFFSET = 8 * 60 * 60 * 1000;
     const todayStr = new Date(Date.now() + SGT_OFFSET).toISOString().split('T')[0];
     const todayMidnight = new Date(todayStr + 'T00:00:00+08:00').getTime();
+    // Report Date is the date the employee says this report covers (may
+    // differ from the actual submission timestamp, e.g. a catch-up entry).
+    const reportDateMidnight = new Date(report_date + 'T00:00:00+08:00').getTime();
 
     const fields = {
       '日期': todayMidnight,
+      'Report Date': reportDateMidnight,
       '员工姓名': [{ id: open_id }],
       'Report Type': report_type,
       'Roles Focus Today': roles_focus,
@@ -173,7 +179,12 @@ router.get('/to-submit', async (req, res) => {
       allReports
         .map(r => {
           const oid = r.fields['员工姓名']?.[0]?.id;
-          const ds = r.fields['日期'] ? toSGTDateStr(r.fields['日期']) : null;
+          // Determine which working day this report satisfies using the
+          // employee-selected "Report Date" — not the raw submission
+          // timestamp ("日期"). Records submitted before the Report Date
+          // field existed fall back to 日期.
+          const effectiveDate = r.fields['Report Date'] || r.fields['日期'];
+          const ds = effectiveDate ? toSGTDateStr(effectiveDate) : null;
           return oid && ds ? `${oid}|${ds}` : null;
         })
         .filter(Boolean)
@@ -233,27 +244,6 @@ router.get('/to-submit', async (req, res) => {
     res.json({ employees: missed, is_workday: isWorkday, today: todayStr });
   } catch (err) {
     console.error('To-submit error:', err.message);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// GET /api/reports/check-today?open_id=xxx
-// Check if user already submitted today
-router.get('/check-today', async (req, res) => {
-  try {
-    const { open_id } = req.query;
-    if (!open_id) return res.status(400).json({ error: 'Missing open_id' });
-
-    const SGT_OFFSET = 8 * 60 * 60 * 1000;
-    const todayStr = new Date(Date.now() + SGT_OFFSET).toISOString().split('T')[0];
-    const todayMidnight = new Date(todayStr + 'T00:00:00+08:00').getTime();
-    const tomorrow = todayMidnight + 86400000;
-
-    const filter = `AND(CurrentValue.[员工姓名].id = "${open_id}", CurrentValue.[日期] >= ${todayMidnight}, CurrentValue.[日期] < ${tomorrow})`;
-    const records = await listRecords(process.env.TABLE_REPORT_STORAGE, filter, 1);
-    res.json({ submitted: records.length > 0 });
-  } catch (err) {
-    console.error('Check today error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
