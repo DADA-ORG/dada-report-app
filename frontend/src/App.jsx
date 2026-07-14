@@ -92,14 +92,15 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('submit')
 
   useEffect(() => {
+    // Moved out of try{} — catch{} below needs to reference CACHE_KEY too, and
+    // const declared inside try{} is not visible inside catch{} (separate block
+    // scopes). That bug was throwing "CACHE_KEY is not defined" inside catch,
+    // silently masking every real login/API error since before v3. (2026-07-14)
+    const CACHE_KEY = 'dada_session_v5'
+    const CACHE_TTL = 7 * 24 * 60 * 60 * 1000 // 7 days
+
     async function init() {
       try {
-        // ── Fast path: use cached session (persists up to 7 days via localStorage) ──
-        // v5: bumped again — v4 cached a wrong role picked up while VITE_API_BASE_URL
-        // had a trailing slash (double-slash /api path was silently failing). Now that
-        // the URL is fixed, force one more clean re-auth. (2026-07-14)
-        const CACHE_KEY = 'dada_session_v5'
-        const CACHE_TTL = 7 * 24 * 60 * 60 * 1000 // 7 days
         const cached = localStorage.getItem(CACHE_KEY)
         if (cached) {
           const parsed = JSON.parse(cached)
