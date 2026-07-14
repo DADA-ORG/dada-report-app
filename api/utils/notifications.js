@@ -1,7 +1,7 @@
 // Notification helpers — Lark card messages to employees and managers
 const { listRecords, sendCard } = require('./larkClient');
 
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://dada-report-frontend.onrender.com';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://dada-report-frontend.vercel.app';
 const SGT_OFFSET = 8 * 60 * 60 * 1000;
 const CUTOFF = '2026-06-09';
 
