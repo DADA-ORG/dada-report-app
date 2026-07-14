@@ -71,7 +71,9 @@ function ReportsView({ role, onMoreReports }) {
   useEffect(() => {
     if (!user?.open_id) return
     setLoading(true)
-    const params = role === 'admin' ? {} : { manager_open_id: user.open_id }
+    // Server derives role/scope from open_id itself — never trust the
+    // client's `role` to decide what data to ask for. (2026-07-14)
+    const params = { open_id: user.open_id }
     api.getReports(params)
       .then(d => setReports(d))
       .catch(console.error)
@@ -145,7 +147,9 @@ function AllReportsView({ role, onBack }) {
   useEffect(() => {
     if (!user?.open_id) return
     setLoading(true)
-    const params = role === 'admin' ? {} : { manager_open_id: user.open_id }
+    // Server derives role/scope from open_id itself — never trust the
+    // client's `role` to decide what data to ask for. (2026-07-14)
+    const params = { open_id: user.open_id }
     api.getReports(params)
       .then(d => setReports(d))
       .catch(console.error)
@@ -212,7 +216,9 @@ function ToSubmitView({ role }) {
   useEffect(() => {
     if (!user?.open_id) return
     setLoading(true)
-    const params = role === 'admin' ? {} : { manager_open_id: user.open_id }
+    // Server derives role/scope from open_id itself — never trust the
+    // client's `role` to decide what data to ask for. (2026-07-14)
+    const params = { open_id: user.open_id }
     api.getToSubmit(params)
       .then(d => setData(d))
       .catch(e => setError(e.message))

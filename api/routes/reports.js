@@ -2,22 +2,31 @@ const express = require('express');
 const router = express.Router();
 const { listRecords, createRecord } = require('../utils/larkClient');
 const { notifyManager, lookupManagerOpenId } = require('../utils/notifications');
+const { getUserRole } = require('../utils/roles');
 
-// GET /api/reports?manager_open_id=xxx&date=YYYY-MM-DD
-// Returns reports filtered by manager and/or date
+// GET /api/reports?open_id=xxx&date=YYYY-MM-DD
+// Returns reports scoped to the caller's own role — role and manager scope
+// are ALWAYS re-derived server-side from open_id, never trusted from the
+// client. employee role gets 403; manager sees only their own team; admin
+// sees everything. (2026-07-14 — closes an authorization gap where any
+// authenticated caller could pass/omit manager_open_id directly and read
+// every employee's reports regardless of their actual role.)
 router.get('/', async (req, res) => {
   try {
-    const { manager_open_id, date, employee_open_id } = req.query;
+    const { open_id, date, employee_open_id } = req.query;
+    if (!open_id) return res.status(400).json({ error: 'Missing open_id' });
 
-    // Only filter in Bitable on fields that support it. manager_open_id is
-    // NOT passed into the filter formula — see below for why.
-    const filter = employee_open_id
+    const { role } = await getUserRole(open_id);
+    if (role === 'employee') return res.status(403).json({ error: 'Forbidden' });
+
+    // Admin may optionally narrow to one employee via employee_open_id.
+    // (Not currently used by the frontend, kept admin-only to avoid a
+    // manager/employee using it to read someone outside their own scope.)
+    const filter = (role === 'admin' && employee_open_id)
       ? `CurrentValue.[员工姓名].id = "${employee_open_id}"`
       : '';
 
-    console.log('Reports GET params:', { manager_open_id, date, employee_open_id }, 'filter:', filter);
     const records = await listRecords(process.env.TABLE_REPORT_STORAGE, filter, 1000);
-    console.log('Records fetched:', records.length);
 
     // Manager filtering happens here in app code, after fetching, rather
     // than via a Bitable filter formula. "Direct Manager" is Lark Base's
@@ -28,8 +37,8 @@ router.get('/', async (req, res) => {
     // doesn't support querying `.id` on this field type, so passing it into
     // `filter` silently matches nothing. Read-then-filter-in-JS sidesteps
     // that entirely.
-    const filteredRecords = manager_open_id
-      ? records.filter(r => r.fields['Direct Manager']?.[0]?.id === manager_open_id)
+    const filteredRecords = role === 'manager'
+      ? records.filter(r => r.fields['Direct Manager']?.[0]?.id === open_id)
       : records;
 
     const reports = filteredRecords.map(r => ({
@@ -138,11 +147,19 @@ function isSGTWorkday(dateStr) {
   return day >= 1 && day <= 5;
 }
 
-// GET /api/reports/to-submit?manager_open_id=xxx (optional)
-// Returns all missed submissions from CUTOFF to today (not just today)
+// GET /api/reports/to-submit?open_id=xxx
+// Returns all missed submissions from CUTOFF to today (not just today),
+// scoped server-side to the caller's real role — same reasoning as GET /
+// above. (2026-07-14)
 router.get('/to-submit', async (req, res) => {
   try {
-    const { manager_open_id } = req.query;
+    const { open_id } = req.query;
+    if (!open_id) return res.status(400).json({ error: 'Missing open_id' });
+
+    const { role } = await getUserRole(open_id);
+    if (role === 'employee') return res.status(403).json({ error: 'Forbidden' });
+    const manager_open_id = role === 'manager' ? open_id : null;
+
     const CUTOFF = '2026-07-06';
     const todayStr = toSGTDateStr(Date.now());
     const sgtHour = new Date(Date.now() + SGT_OFFSET).getUTCHours();

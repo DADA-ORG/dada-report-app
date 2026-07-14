@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { listRecords } = require('../utils/larkClient');
+const { getUserRole } = require('../utils/roles');
 
 // GET /api/employees
 // Returns all records from Remote and Probation table
@@ -104,29 +105,9 @@ router.get('/role', async (req, res) => {
     const { open_id } = req.query;
     if (!open_id) return res.status(400).json({ error: 'Missing open_id' });
 
-    // Check Admin Team table
-    const adminRecords = await listRecords(process.env.TABLE_ADMIN_TEAM);
-    console.log(`Role check for ${open_id} — admin table IDs:`, adminRecords.map(r => (r.fields['People'] || []).map(p => p.id)));
-    const isAdmin = adminRecords.some(r => {
-      const people = r.fields['People'] || [];
-      return people.some(p => p.id === open_id);
-    });
-    if (isAdmin) {
-      console.log(`${open_id} => admin`);
-      // Developer flag: any admin gets full role-switcher access
-      return res.json({ role: 'admin', is_developer: true });
-    }
-
-    // Check if this user is a Direct Manager of anyone in Remote/Probation
-    const empRecords = await listRecords(process.env.TABLE_REMOTE_PROBATION);
-    const isManager = empRecords.some(r => {
-      const mgr = r.fields['Direct Manager'] || [];
-      return mgr.some(m => m.id === open_id);
-    });
-    if (isManager) { console.log(`${open_id} => manager`); return res.json({ role: 'manager' }); }
-
-    console.log(`${open_id} => employee`);
-    return res.json({ role: 'employee' });
+    const { role, is_developer } = await getUserRole(open_id);
+    console.log(`${open_id} => ${role}`);
+    return res.json({ role, is_developer });
   } catch (err) {
     console.error('Role check error:', err.message);
     res.status(500).json({ error: err.message });
