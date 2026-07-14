@@ -1,4 +1,7 @@
 {
+  "functions": {
+    "api/index.js": {}
+  },
   "rewrites": [{ "source": "/(.*)", "destination": "/api" }],
   "crons": [
     { "path": "/api/notify/remind?type=morning", "schedule": "0 1 * * 1-5" },
