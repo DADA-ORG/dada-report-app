@@ -95,8 +95,9 @@ export default function App() {
     async function init() {
       try {
         // ── Fast path: use cached session (persists up to 7 days via localStorage) ──
-        // v3: cache key bumped to force re-auth on upgrade
-        const CACHE_KEY = 'dada_session_v3'
+        // v4: cache key bumped again to force re-auth — stale cached identity was letting
+        // users skip the Lark authorization step entirely (2026-07-14)
+        const CACHE_KEY = 'dada_session_v4'
         const CACHE_TTL = 7 * 24 * 60 * 60 * 1000 // 7 days
         const cached = localStorage.getItem(CACHE_KEY)
         if (cached) {
