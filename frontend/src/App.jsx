@@ -95,9 +95,10 @@ export default function App() {
     async function init() {
       try {
         // ── Fast path: use cached session (persists up to 7 days via localStorage) ──
-        // v4: cache key bumped again to force re-auth — stale cached identity was letting
-        // users skip the Lark authorization step entirely (2026-07-14)
-        const CACHE_KEY = 'dada_session_v4'
+        // v5: bumped again — v4 cached a wrong role picked up while VITE_API_BASE_URL
+        // had a trailing slash (double-slash /api path was silently failing). Now that
+        // the URL is fixed, force one more clean re-auth. (2026-07-14)
+        const CACHE_KEY = 'dada_session_v5'
         const CACHE_TTL = 7 * 24 * 60 * 60 * 1000 // 7 days
         const cached = localStorage.getItem(CACHE_KEY)
         if (cached) {
